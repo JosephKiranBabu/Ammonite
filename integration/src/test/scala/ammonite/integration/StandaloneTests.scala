@@ -3,6 +3,7 @@ package ammonite.integration
 import utest._
 import ammonite.ops._
 import ammonite.ops.ImplicitWd._
+import utest.framework.TestPath
 
 /**
  * Run a small number of scripts using the Ammonite standalone executable,
@@ -18,6 +19,11 @@ object StandaloneTests extends TestSuite{
   // Prepare standalone executable
   val scalaVersion = scala.util.Properties.versionNumberString
   println("StandaloneTests")
+  def traced[T](t: => T)(implicit testPath: TestPath) = {
+    println(implicitly[utest.framework.TestPath])
+    t
+    println(implicitly[utest.framework.TestPath])
+  }
   val tests = TestSuite {
     val ammVersion = ammonite.Constants.version
     val executableName = s"ammonite-repl-$ammVersion-$scalaVersion"
@@ -50,17 +56,17 @@ object StandaloneTests extends TestSuite{
       }
     }
 
-    'hello{
+    'hello - traced{
       val evaled = exec("Hello.scala")
       assert(evaled.out.trim == "Hello World")
     }
 
-    'complex{
+    'complex - traced{
       val evaled = exec("Complex.scala")
       assert(evaled.out.trim.contains("Spire Interval [0, 10]"))
     }
 
-    'load_script{
+    'load_script - traced{
       val name = "QuickSort.scala"
       val res = %%bash(
         executable,
@@ -74,7 +80,7 @@ object StandaloneTests extends TestSuite{
       println("\n-------------------------")
     }
 
-    'errorTest{
+    'errorTest - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "ErrorLineNumberTest.scala"
       val e = intercept[ShelloutException]{
@@ -91,10 +97,9 @@ object StandaloneTests extends TestSuite{
           |                       ^""".stripMargin
 
       assert(e.toString.contains(expectedErrorMsg))
-
     }
 
-    'multipleCompilationUnitErrorTest1{
+    'multipleCompilationUnitErrorTest1 - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val file = "MultipleCompilationUnitErrorMsgTest1.scala"
 
@@ -114,7 +119,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'multipleCompilationUnitErrorTest2{
+    'multipleCompilationUnitErrorTest2 - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val file = "MultipleCompilationUnitErrorMsgTest2.scala"
 
@@ -134,7 +139,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'compilationErrorWithCommentsAtTop{
+    'compilationErrorWithCommentsAtTop - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "compilationErrorWithCommentsAtTop.scala"
       val e = interceptException(name)
@@ -146,7 +151,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'compilationErrorInSecondBlock{
+    'compilationErrorInSecondBlock - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "compilationErrorInSecondBlock.scala"
       val e = interceptException(name)
@@ -158,7 +163,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'compilationErrorInFourthBlock{
+    'compilationErrorInFourthBlock - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "compilationErrorInFourthBlock.scala"
       val e = interceptException(name)
@@ -170,7 +175,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'compilationErrorInClass{
+    'compilationErrorInClass - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "compilationErrorInClass.scala"
       val e = interceptException(name)
@@ -179,7 +184,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'CompilationErrorLineNumberTest{
+    'CompilationErrorLineNumberTest - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "CompilationErrorLineNumberTest.scala"
       val e = interceptException(name)
@@ -190,7 +195,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrMsg))
     }
 
-    'RuntimeCompilationErrorLineNumberTest{
+    'RuntimeCompilationErrorLineNumberTest - traced{
       //Make sure correct line numbers are printed when an erroneous script is executed
       val name = "RuntimeCompilationErrorLineNumberTest.scala"
       val e = interceptException(name)
@@ -199,7 +204,7 @@ object StandaloneTests extends TestSuite{
       assert(e.toString.contains(expectedErrorMsg))
     }
 
-    'shell{
+    'shell - traced{
       // make sure you can load the example-predef.scala, have it pull stuff in
       // from ivy, and make use of `cd!` and `wd` inside the executed script.
       val res = %%bash(
@@ -218,11 +223,11 @@ object StandaloneTests extends TestSuite{
       val output = res.out.trim
       assert(output == "repl/src")
     }
-    'main{
+    'main - traced{
       val evaled = exec("Main.scala")
       assert(evaled.out.string.contains("Hello! 1"))
     }
-    'classloaders{
+    'classloaders - traced{
       val evaled = exec("Resources.scala")
       assert(evaled.out.string.contains("1745"))
     }
@@ -231,24 +236,24 @@ object StandaloneTests extends TestSuite{
 //      assert(evaled.out.string.contains("Hello bar"))
 //    }
     'args{
-      'full{
+      'full - traced{
         val evaled = exec("Args.scala", "3", "Moo", (cwd/'omg/'moo).toString)
         assert(evaled.out.string.contains("Hello! MooMooMoo omg/moo."))
       }
-      'default{
+      'default - traced{
         val evaled = exec("Args.scala", "3", "Moo")
         assert(evaled.out.string.contains("Hello! MooMooMoo ."))
       }
       // Need a way for `%%` to capture stderr before we can specify these
       // tests a bit more tightly; currently the error just goes to stdout
       // and there's no way to inspect/validate it =/
-      'tooFew{
+      'tooFew - traced{
         val errorMsg = intercept[ShelloutException]{
           exec("Args.scala", "3")
         }.result.err.string
         assert(errorMsg.contains("Unspecified value parameter s"))
       }
-      'cantParse{
+      'cantParse - traced{
         val errorMsg = intercept[ShelloutException]{
           exec("Args.scala", "foo", "moo")
         }.result.err.string
@@ -256,7 +261,6 @@ object StandaloneTests extends TestSuite{
         // Ensure we're properly truncating the random stuff we don't care about
         // which means that the error stack that gets printed is short-ish
         assert(errorMsg.lines.length < 12)
-
       }
     }
   }
