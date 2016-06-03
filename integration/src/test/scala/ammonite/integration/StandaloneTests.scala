@@ -36,6 +36,11 @@ object StandaloneTests extends TestSuite{
 
     //we use an empty predef file here to isolate the tests from external forces.
     def exec(name: String, args: String*) = {
+      println("EXECUTING")
+      println(executable)
+      println(emptyPrefdef)
+      println(replStandaloneResources/name)
+      println(args)
       %%bash(
         executable,
         "--predef-file",
